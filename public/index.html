@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <!-- CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+    <!-- jQuery and JS bundle w/ Popper.js -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@next"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.1/css/all.css" integrity="sha384-vp86vTRFVJgpjF9jiIGPEEqYqlDwgyBgEF109VFjmqGmIY/Y4HV4d3Gp2irVfcrp" crossorigin="anonymous">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracker</title>
+    <style>
+        .shifticon{
+            
+            transform:rotateZ(180deg);
+            position:relative;
+        }
+        body{
+            overflow: hidden;
+        }
+        .moveleft{
+            transform:translateX(-50vw)
+        }
+     
+        .slide-fade-enter-from{
+            transform:translateY(-100px);
+            opacity:0;
+            transition:0.3s;
+        }
+     
+        .slide-fade-enter-to{
+            transform:translateY(0px);
+            opacity:1;
+            transition:0.3s;
+        }
+        .slide-fade-move{
+            transition:transform 0.3s;
+        }
+        .slide-fade-leave-from{
+            opacity:1;
+        }
+        .slide-fade-leave-active{
+            position: absolute;
+        }
+        .slide-fade-leave-to{
+            transform:translateX(150px);
+            opacity:0;
+            transition:0.3s;
+        }
+
+        html{
+            font-size:14px;
+        }
+        .numbers{
+            color:red;
+        }
+
+        ::placeholder{
+            opacity:0.6;
+
+        }
+      
+        input{
+            height:calc(100% + 0px);
+            width:100%;
+            padding-left:5px;
+            
+        }
+        
+        .tracker-controls{
+            display:flex;
+            flex-direction: row;
+            justify-content: center;
+            width:100%;
+            padding:5%;
+            margin:auto;
+            overflow: hidden;
+            margin-bottom:-10px;
+            
+            
+           
+        }
+        #delete{
+            text-align: center;
+            align-self: center;
+            padding:0px 10px 0px 10px !important;
+            height:100%;
+            font-size:1.5rem;
+            color:black !important; 
+            border-top-right-radius: 0px !important;
+            border-bottom-right-radius: 0px !important;
+        }
+   
+        
+        body{
+            background:lightgray;
+        }
+
+        #numbers{
+            margin-top:-10px;
+            font-size:1.5rem;
+        }
+        .timebutton{
+            width:70px;
+            border-top-left-radius: 0px !important;
+            border-bottom-left-radius: 0px !important;
+        }
+        #tracker{
+            width:90vw;
+            margin:auto;
+        }
+        #buttons{
+            margin-bottom:0px;
+        }
+        #tasks{
+            height:75vh;
+            overflow-y:scroll;
+            overflow-x:hidden;
+        }
+        .sidebar{
+            position: absolute;
+            height:100vh;
+            max-height:100vh;
+            width:50vw;
+            background: linear-gradient(90deg, rgba(247,247,247,1) 0%, rgba(220,220,220,1) 100%);
+            top:0px;
+            box-shadow:1px 0px 20px grey;
+            display:grid;
+            grid-template-columns: 99% 1%;
+            grid-template-rows: 100%;
+            justify-items: space-between;
+            z-index: 100;
+            padding:0.5rem;
+            font-size:1.3rem;
+            
+
+        }
+        .sidebar-container{
+            display:flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            height:100%;
+            align-items: flex-start;
+        
+        }
+        .iconClick{
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          justify-content: center;
+          height:100%;
+          width:100%;
+          flex-grow:1;
+          font-size:2rem;
+        }
+        #history{
+            height:100%;
+            overflow-x:hidden;
+            overflow-y:scroll;
+            width:100%;
+        }
+        #searchbar{
+            height:1.5rem;
+            width:90%;
+            margin:auto;
+            border-radius:1rem;
+        }
+        
+
+    </style>
+</head>
+<body id="app">
+
+    <header class="text-center shadow pb-4">
+    <h1>Time Tracker <i style="font-size:2rem;" class="fas fa-clock"></i></h1>
+
+    <button @click="addTracker" class="btn btn-light">Add new tracker +</button>
+    </header>
+    <br>
+   
+
+    <div style="transition:0.5s;" :class="{moveleft:sideHidden}" class="sidebar">
+      
+      <div class="sidebar-container" >
+        <div style="width:100%" class="text-center">History</div>
+        <input v-model="timeLogSearch" @input="filterLogs()" class="form-control mb-2 mt-1" type="text" placeholder="Search" id="searchbar">
+        <p style="width:100%; font-size:0.8rem; text-align: center;" v-if="timelogs.length==0">Time logs will show up here.</p>
+        <div v-else id="history">
+            <button @click="clearHistory()" class="btn btn-dark mb-2" style="width:90%; margin-left:5%; padding:0.2rem; font-size:0.9rem;">Clear History</button>
+            <transition-group name="slide-fade">
+            <time-logs
+                v-for="(log, index) in timelogs"
+                :date='log.date'
+                :time='log.time'
+                :task='log.task'
+                :key="index"
+                v-show="log.show"
+            
+            ></time-logs>
+        </transition-group>
+        </div>
+     
+        
+      </div>
+
+      <div class="iconClick">
+        <i @click="showHide()" style="position:relative; margin:3px; transition:0.5s; height:1.7rem; border-radius: 50%;
+         background:lightgray; left:2.75rem;"class="fas fa-arrow-circle-left"
+         :class="{shifticon:sideHidden}"
+         ></i>
+      </div>
+
+    </div>
+
+   
+
+<div ref="tasksHTML" id="tasks">
+   
+
+  <transition-group name="slide-fade">
+  <current-task 
+  ref="taskComp"
+  :key="task"
+  style="margin-bottom:15px; transition:0.4s;" 
+  @delete="removeTracker"
+  @logtime="receiveTimeLog"
+  :ptask="task"
+  :pkey="task"
+  v-for="task in tasks">
+</current-task>
+</transition-group>
+</div>
+
+
+
+    
+    
+
+
+<script>
+
+  
+    const app = Vue.createApp({
+        data(){
+            return{
+                data:0,
+                tasks:[],
+                count:1,
+                top:0,
+                sideHidden:true,
+                timelogs:[
+                
+                ],
+                countAnon:0,
+                timeLogSearch:"",
+  
+            }
+        },
+        mounted(){
+            if(localStorage.timelogs) this.timelogs=JSON.parse(localStorage.timelogs)
+            if(localStorage.count)this.count=localStorage.count
+        },
+        methods:{
+            filterLogs(){
+                if(this.timeLogSearch=="") return this.timelogs.forEach(elem=>{elem.show=true})
+                else{
+                    this.timelogs.forEach(elem=>{
+                        if(!elem.task.toUpperCase().includes(this.timeLogSearch.toUpperCase())){
+                            elem.show=false
+                        }else{
+                            elem.show=true
+                        }
+                    })
+                }
+            },
+            receiveTimeLog(time,date,task,key){
+                let logObj = {
+                    time:time,
+                    date:date,
+                    task:task,
+                    show:true,
+                    key:key
+                }
+
+         
+                    
+                    if(logObj.time=="00:00:00"){return}
+                    if(!logObj.task){
+                        this.countAnon++
+                        logObj.task=`Anonymous Activity ${this.countAnon}`}
+
+                    if(this.timelogs.length>0){
+                        let ind = this.timelogs.findIndex(elem=>elem.key==logObj.key)
+                        if(ind>=0){
+                            if(this.timelogs[ind].date==logObj.date){
+                                this.timelogs[ind]=logObj
+                            }else this.timelogs.push(logObj)
+                        }else this.timelogs.push(logObj)
+                    }else{
+                      this.timelogs.push(logObj)
+                      
+                    }
+                    
+                    window.localStorage.timelogs=JSON.stringify(this.timelogs)
+            },
+            clearHistory(){
+                
+                this.timelogs=[]
+                this.tasks=[]
+                window.localStorage.timelogs=JSON.stringify(this.timelogs)
+            },
+            addTracker(){
+                let scrolling=setInterval(()=>{
+                    if(this.$refs.tasksHTML.scrollTop<this.$refs.tasksHTML.scrollHeight){
+                        this.$refs.tasksHTML.scrollTop+=2
+                    }
+
+               
+                },1)
+                setTimeout(()=>{
+                    clearInterval(scrolling)
+                },1000)
+                
+                this.count++
+                window.localStorage.count=this.count
+                this.tasks.push(this.count)
+                
+              
+                
+                
+                
+            },
+            removeTracker(ID){
+            this.tasks.splice(this.tasks.indexOf(ID),1)
+            let scrolling=setInterval(()=>{
+                    this.$refs.tasksHTML.scrollTop-=this.$refs.tasksHTML.height
+                  
+                },1)
+                setTimeout(()=>{
+                    clearInterval(scrolling)
+                },400)
+            
+            
+           
+            },
+            showHide(){
+                this.sideHidden = !this.sideHidden
+            }
+        }
+    })
+
+    app.component('current-task',{
+        props:["ptask","pkey"],
+        emits:['delete','log-time'],
+        template:`
+<div id="tracker" class="bg-light rounded shadow">
+    <h5 class="text-center pt-2 pb-0 mb-0">{{getDate}}</h5>
+    <div class="tracker-controls">
+    <button id="delete" @click="removeTracker()" class="btn btn-danger">
+        x
+    </button>
+    <span id="task-input">
+    <input :value="taskinput" type="text" v-model="taskinput" :disabled="isDisabled" placeholder="Current Task:">
+    </span>
+    
+    <span id="buttons">
+        <span v-if="timeOff">
+            <button @click="Time()" class="btn btn-primary timebutton">Start</button>
+        </span>
+        <span v-else>
+            <button @click="Time()" class="btn btn-danger timebutton">Stop</button>
+        </span>
+    </span>
+
+
+   
+    </div>
+    <hr>
+    <div id="numbers" class="text-center":class="{numbers:!timeOff}">
+    <span type="number" @input="checkNum($event)" :contenteditable="canEdit">{{hrs0+hrs}}</span>:<span type="number" @input="checkNum($event)" :contenteditable="canEdit">{{mins0+mins}}</span>:<span type="number" @input="checkNum($event)" :contenteditable="canEdit">{{secs0+secs}}</span> 
+    </div>
+</div>
+`,
+        data(){
+            return{
+                canEdit:false,
+                timeOff:true,
+                hrs:0,
+                mins:0,
+                secs:0,
+                hrs0:'0',
+                mins0:'0',
+                secs0:'0',
+                timer:null,
+                date:null,
+                fulltimedata:null,
+                taskinput:"",
+                deleted:false,
+                isDisabled:false,
+          
+            }
+        },
+        methods:{
+            Time(){
+                this.timeOff=!this.timeOff
+                if(!this.timeOff&&!this.timer){
+                    this.timer = setInterval(()=>{
+                    this.secs++
+                    this.secs<10 ? this.secs0 = "0" : this.secs0 = ""
+                    this.mins<10 ? this.mins0 = "0" : this.mins0 = ""
+                    this.hrs<10 ? this.hrs0 = "0" : this.hrs0 = ""
+
+                    if(this.secs>59){
+                        this.secs=0
+                        this.mins++
+                    }
+                    if(this.mins>59){
+                        this.mins=0
+                        this.hrs++
+                    }
+
+                    },1000)
+
+                }else{
+                    if(!this.taskinput) this.taskinput="Anonymous Task"
+                    clearInterval(this.timer)
+                    this.isDisabled=true
+                    this.logTime()
+                    this.timer=null
+                }
+              
+            },
+            removeTracker(){
+                if(!this.taskinput) this.taskinput="Anonymous Task"
+                this.deleted=true
+                this.logTime()
+                this.$emit("delete",this.ptask)
+                
+             
+            },
+            logTime(){
+                this.$emit('logtime',this.fullTime,this.getDate,this.taskinput,this.pkey)
+            }
+          
+         
+        },
+        computed:{
+            getDate(){
+                    const d = new Date()
+                    const year = d.getFullYear()
+                    const month = d.getMonth()+1
+                    const day = d.getDate()
+                    let hours = d.getHours()
+                    let minutes = d.getMinutes()
+                    let merid = "AM"
+                    let dateMin=""
+                    
+                    minutes<10 ? dateMin="0" : date = ""
+
+                    if(hours>=12){
+                        merid="PM"
+                        hours-=12
+                    }
+
+                    return this.date=`${month}/${day}/${year} - ${hours}:${dateMin + minutes} ${merid}`
+            },
+            fullTime(){
+                return this.fulltimedata=`${this.hrs0+this.hrs}:${this.mins0+this.mins}:${this.secs0+this.secs}`
+            }
+        }
+
+    })
+
+    app.component('time-logs',{
+        emits:[],
+        props:["date","task","time","index"],
+        template:`
+        <div class="ml-1">
+        <p style="font-size:0.8rem;"class="mb-0">{{date}}: <br>{{task}}</p>
+        <h5 style="font-size:0.9rem;">{{time}}</h5>
+        <hr>
+        </div>
+        `,
+    })
+
+    app.mount("#app")
+    
+</script>
+
+
+
+
+<!--
+
+-->
+
+
+
+</body>
+</html>
